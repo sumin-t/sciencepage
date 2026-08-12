@@ -249,29 +249,24 @@
     box-shadow:0 2px 3px rgba(0,0,0,0.2);
   }
   .thumb-wrap{position:relative;}
-  .app-thumb{
+  .subject-thumb{
     width:100%;
     aspect-ratio:16/10;
-    object-fit:cover;
-    background:linear-gradient(135deg, var(--pink-bg-deep), #fff);
-    display:block;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     border-bottom:2px solid var(--line);
   }
-  .app-thumb.placeholder{
-    display:flex; align-items:center; justify-content:center;
-    color:var(--ink-soft);
-    font-size:30px;
-  }
-  .subject-badge{
+  .subject-thumb svg{width:52px; height:52px;}
+  .subject-thumb .subj-label{
     position:absolute;
-    top:8px; right:8px;
-    width:30px; height:30px;
-    border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    border:2px solid #fff;
-    box-shadow:0 2px 4px rgba(0,0,0,0.25);
+    bottom:8px; right:10px;
+    font-size:10px;
+    font-weight:700;
+    color:#fff;
+    text-shadow:0 1px 3px rgba(0,0,0,0.35);
+    font-family:'Space Mono', monospace;
   }
-  .subject-badge svg{width:16px; height:16px;}
   .app-info{padding:12px 14px 6px;}
   .app-name{font-weight:700; font-size:14.5px; margin-bottom:4px; line-height:1.3;}
   .app-meta{
@@ -352,11 +347,10 @@
    1) 구글 스프레드시트 우측 상단 [공유] → "링크가 있는 모든 사용자"가
       "뷰어(볼 수 있음)"로 접근 가능하도록 설정하세요 (필수)
    2) 시트의 첫 번째 행(헤더)은 아래 컬럼명을 그대로 사용하세요:
-      학년 | 단원 | 과목 | 이름 | 링크 | 썸네일 | 등록일(선택)
+      학년 | 단원 | 과목 | 이름 | 링크 | 등록일(선택)
       - 학년: 중1 / 중2 / 중3
-      - 과목: 물리 / 화학 / 생명과학 / 지구과학 중 하나(글자 포함되면 인식)
+      - 과목: 물리 / 화학 / 생명과학 / 지구과학 중 하나(글자 포함되면 인식) → 카드 썸네일에 해당 과목 아이콘이 자동으로 표시됩니다
       - 링크: 웹앱 URL
-      - 썸네일: 이미지 URL (비워두면 기본 아이콘 표시)
       - 등록일: YYYY-MM-DD (선택 입력, "최근 업데이트" 표시에 사용)
    3) 데이터가 들어있는 시트 탭이 바뀌면, 아래 URL의 gid=0 숫자를
       해당 시트 탭의 URL에 있는 gid 값으로 바꿔주세요.
@@ -422,7 +416,7 @@ async function fetchSheet(showSpinner){
       subject: pick(row, ['과목']),
       name: pick(row, ['이름','웹앱명','제목']),
       url: pick(row, ['링크','URL','url']),
-      thumb: pick(row, ['썸네일','이미지','썸네일URL']),
+      thumb: pick(row, ['썸네일','이미지','썸네일URL']), // 참고용(현재 UI에서는 미사용, 과목 아이콘으로 대체)
       date: pick(row, ['등록일','날짜']),
     })).filter(r => r.name && r.url && GRADES.includes(r.grade));
 
@@ -557,22 +551,12 @@ function render(){
 
     const thumbWrap = document.createElement('div');
     thumbWrap.className = 'thumb-wrap';
-    if(app.thumb){
-      const img = document.createElement('img');
-      img.className = 'app-thumb';
-      img.src = app.thumb;
-      img.alt = app.name;
-      img.onerror = () => { img.replaceWith(placeholderEl()); };
-      thumbWrap.appendChild(img);
-    } else {
-      thumbWrap.appendChild(placeholderEl());
-    }
-    const badge = document.createElement('div');
-    badge.className = 'subject-badge';
-    badge.style.background = subj.color;
-    badge.title = subj.label;
-    badge.innerHTML = `<svg viewBox="0 0 24 24" style="color:#fff;">${subj.icon}</svg>`;
-    thumbWrap.appendChild(badge);
+    const subjThumb = document.createElement('div');
+    subjThumb.className = 'subject-thumb';
+    subjThumb.style.background = subj.color;
+    subjThumb.title = subj.label;
+    subjThumb.innerHTML = `<svg viewBox="0 0 24 24" style="color:#fff;">${subj.icon}</svg><span class="subj-label">${subj.label}</span>`;
+    thumbWrap.appendChild(subjThumb);
     card.appendChild(thumbWrap);
 
     const info = document.createElement('div');
@@ -613,13 +597,6 @@ function render(){
   });
 
   contentEl.appendChild(grid);
-}
-
-function placeholderEl(){
-  const ph = document.createElement('div');
-  ph.className = 'app-thumb placeholder';
-  ph.textContent = '🧪';
-  return ph;
 }
 
 refreshBtn.onclick = () => fetchSheet(true);
