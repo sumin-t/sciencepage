@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>수민T의 과학 실험실</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Space+Mono&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root{
+    --pink-bg:#fbe6ee;
+    --pink-bg-deep:#f6d3e2;
+    --paper:#fffaf9;
+    --ink:#3a2432;
+    --ink-soft:#7a5c6c;
+    --teal:#2f7d78;
+    --teal-deep:#1f5652;
+    --mustard:#e8ac3f;
+    --line:#e6b9cd;
+    --danger:#c9536b;
+    --physics:#6b5ca5;
+    --chem:#2f7d78;
+    --bio:#4c9a56;
+    --earth:#d9822b;
+    --radius:16px;
+    --shadow:0 6px 0 rgba(58,36,50,0.08), 0 10px 24px rgba(58,36,50,0.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 8% 12%, rgba(255,255,255,0.5) 0, transparent 40%),
+      radial-gradient(circle at 92% 85%, rgba(255,255,255,0.35) 0, transparent 45%),
+      var(--pink-bg);
+    color:var(--ink);
+    font-family:'Noto Sans KR', sans-serif;
+    min-height:100vh;
+    padding-bottom:60px;
+  }
+  .mono{font-family:'Space Mono', monospace;}
+
+  /* ---------- header ---------- */
+  header{
+    padding:38px 6vw 18px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:20px;
+    flex-wrap:wrap;
+  }
+  .title-wrap{display:flex; align-items:center; gap:14px;}
+  .flask{width:52px; height:52px; flex-shrink:0;}
+  .logo-img{height:52px; width:auto; flex-shrink:0; display:block; border-radius:50%;}
+  h1{
+    font-family:'Gaegu', cursive;
+    font-weight:700;
+    font-size:clamp(30px, 4.4vw, 46px);
+    margin:0;
+    color:var(--ink);
+    letter-spacing:-0.5px;
+  }
+  .subtitle{
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-top:4px;
+    font-family:'Space Mono', monospace;
+    letter-spacing:0.5px;
+  }
+
+  .stats-bar{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .stat-pill{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    background:#fff;
+    border:2px solid var(--line);
+    padding:9px 16px;
+    border-radius:999px;
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--ink-soft);
+  }
+  .stat-pill b{color:var(--teal-deep); font-size:14px;}
+  .refresh-btn{
+    width:38px; height:38px;
+    border-radius:50%;
+    border:2px solid var(--line);
+    background:#fff;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--ink-soft);
+    transition:.2s;
+  }
+  .refresh-btn:hover{border-color:var(--teal); color:var(--teal-deep);}
+  .refresh-btn.spinning svg{animation:spin .8s linear infinite;}
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* ---------- grade tabs (folder style) ---------- */
+  .grade-tabs{
+    display:flex;
+    gap:6px;
+    padding:0 6vw;
+    margin-top:18px;
+  }
+  .grade-tab{
+    font-family:'Gaegu', cursive;
+    font-weight:700;
+    font-size:20px;
+    padding:10px 28px 12px;
+    background:var(--pink-bg-deep);
+    color:var(--ink-soft);
+    border:2px solid var(--line);
+    border-bottom:none;
+    border-radius:14px 14px 0 0;
+    cursor:pointer;
+    position:relative;
+    top:2px;
+    transition:.15s;
+  }
+  .grade-tab:hover{color:var(--ink);}
+  .grade-tab.active{
+    background:var(--paper);
+    color:var(--teal-deep);
+    border-color:var(--line);
+    box-shadow:0 -4px 10px rgba(58,36,50,0.05);
+    top:0;
+  }
+
+  main{
+    background:var(--paper);
+    margin:0 6vw 0;
+    border:2px solid var(--line);
+    border-radius:0 14px 14px 14px;
+    padding:28px 26px 40px;
+    box-shadow:var(--shadow);
+    min-height:420px;
+  }
+
+  /* ---------- sub tabs (units, from sheet) ---------- */
+  .subtab-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+    border-bottom:2px dashed var(--line);
+    padding-bottom:18px;
+    margin-bottom:22px;
+  }
+  .subtab-chip{
+    padding:8px 18px;
+    border-radius:999px;
+    border:2px solid var(--line);
+    background:#fff;
+    cursor:pointer;
+    font-weight:700;
+    font-size:14px;
+    color:var(--ink-soft);
+    transition:.15s;
+  }
+  .subtab-chip:hover{border-color:var(--teal);}
+  .subtab-chip.active{
+    background:var(--teal);
+    border-color:var(--teal-deep);
+    color:#fff;
+  }
+
+  /* ---------- subject filter ---------- */
+  .subject-filter{
+    display:flex;
+    gap:8px;
+    margin-left:auto;
+  }
+  .subject-btn{
+    width:34px; height:34px;
+    border-radius:50%;
+    border:2px solid var(--line);
+    background:#fff;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0.45;
+    transition:.15s;
+  }
+  .subject-btn svg{width:17px; height:17px;}
+  .subject-btn.active{opacity:1; box-shadow:0 0 0 2px var(--sc, var(--teal)) inset;}
+  .subject-btn:hover{opacity:1;}
+
+  /* ---------- states ---------- */
+  .empty, .loading, .error-state{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--ink-soft);
+  }
+  .empty .big, .error-state .big{font-family:'Gaegu', cursive; font-size:22px; color:var(--ink); margin-bottom:6px;}
+  .empty .small, .error-state .small{font-size:13px; line-height:1.6;}
+  .error-state code{background:var(--pink-bg-deep); padding:2px 6px; border-radius:5px; font-size:11px;}
+  .spinner{
+    width:34px; height:34px;
+    margin:0 auto 14px;
+    border:4px solid var(--line);
+    border-top-color:var(--teal);
+    border-radius:50%;
+    animation:spin .8s linear infinite;
+  }
+  .retry-btn{
+    margin-top:14px;
+    padding:9px 20px;
+    border-radius:999px;
+    border:none;
+    background:var(--teal);
+    color:#fff;
+    font-weight:700;
+    cursor:pointer;
+  }
+
+  /* ---------- app card grid ---------- */
+  .app-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));
+    gap:20px;
+  }
+  .app-card{
+    position:relative;
+    background:#fff;
+    border:2px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    transition:transform .15s, box-shadow .15s;
+  }
+  .app-card:hover{
+    transform:translateY(-4px) rotate(-0.3deg);
+    box-shadow:0 10px 18px rgba(58,36,50,0.16);
+  }
+  .app-card .pin{
+    position:absolute;
+    top:8px; left:50%; transform:translateX(-50%);
+    width:12px; height:12px;
+    border-radius:50%;
+    background:var(--mustard);
+    border:2px solid #fff;
+    z-index:2;
+    box-shadow:0 2px 3px rgba(0,0,0,0.2);
+  }
+  .thumb-wrap{position:relative;}
+  .app-thumb{
+    width:100%;
+    aspect-ratio:16/10;
+    object-fit:cover;
+    background:linear-gradient(135deg, var(--pink-bg-deep), #fff);
+    display:block;
+    border-bottom:2px solid var(--line);
+  }
+  .app-thumb.placeholder{
+    display:flex; align-items:center; justify-content:center;
+    color:var(--ink-soft);
+    font-size:30px;
+  }
+  .subject-badge{
+    position:absolute;
+    top:8px; right:8px;
+    width:30px; height:30px;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    border:2px solid #fff;
+    box-shadow:0 2px 4px rgba(0,0,0,0.25);
+  }
+  .subject-badge svg{width:16px; height:16px;}
+  .app-info{padding:12px 14px 6px;}
+  .app-name{font-weight:700; font-size:14.5px; margin-bottom:4px; line-height:1.3;}
+  .app-meta{
+    font-family:'Space Mono', monospace;
+    font-size:10.5px;
+    color:var(--teal-deep);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .card-actions{
+    display:flex;
+    gap:6px;
+    padding:10px 14px 14px;
+    margin-top:auto;
+  }
+  .card-actions a, .card-actions button{
+    flex:1;
+    border-radius:10px;
+    border:2px solid var(--line);
+    background:#fff;
+    font-size:12px;
+    font-weight:700;
+    padding:8px 6px;
+    cursor:pointer;
+    text-align:center;
+    text-decoration:none;
+    color:var(--ink);
+    transition:.15s;
+  }
+  .card-actions a.go{
+    background:var(--teal);
+    border-color:var(--teal-deep);
+    color:#fff;
+  }
+  .card-actions a.go:hover{background:var(--teal-deep);}
+  .card-actions button.copy:hover{border-color:var(--mustard); color:var(--mustard);}
+  .card-actions button.copy.copied{background:var(--mustard); border-color:var(--mustard); color:#fff;}
+
+  footer{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:11px;
+    font-family:'Space Mono', monospace;
+    margin-top:30px;
+    line-height:1.8;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-wrap">
+    <img class="logo-img" src="logo.png" alt="수민T의 가상실험실 로고">
+    <div>
+      <h1>수민T의 과학 실험실</h1>
+      <div class="subtitle">// 가상 과학 실험실 허브 · 카드를 클릭하면 실험이 시작돼요</div>
+    </div>
+  </div>
+  <div class="stats-bar">
+    <div class="stat-pill">🧪 총 <b id="statCount">-</b>개의 가상실험</div>
+    <div class="stat-pill">🕒 최근 업데이트: <b id="statDate">-</b></div>
+    <button class="refresh-btn" id="refreshBtn" title="지금 다시 불러오기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+    </button>
+  </div>
+</header>
+
+<nav class="grade-tabs" id="gradeTabs"></nav>
+<main>
+  <div class="subtab-row" id="subtabRow"></div>
+  <div id="content"><div class="loading"><div class="spinner"></div>구글 시트에서 실험실 데이터를 불러오는 중...</div></div>
+</main>
+
+<footer id="footerNote">데이터는 구글 스프레드시트에서 자동으로 불러옵니다 · 5분마다 자동 동기화</footer>
+
+<script>
+/* ============================================================
+   설정 (SETUP)
+   1) 구글 스프레드시트 우측 상단 [공유] → "링크가 있는 모든 사용자"가
+      "뷰어(볼 수 있음)"로 접근 가능하도록 설정하세요 (필수)
+   2) 시트의 첫 번째 행(헤더)은 아래 컬럼명을 그대로 사용하세요:
+      학년 | 단원 | 과목 | 이름 | 링크 | 썸네일 | 등록일(선택)
+      - 학년: 중1 / 중2 / 중3
+      - 과목: 물리 / 화학 / 생명과학 / 지구과학 중 하나(글자 포함되면 인식)
+      - 링크: 웹앱 URL
+      - 썸네일: 이미지 URL (비워두면 기본 아이콘 표시)
+      - 등록일: YYYY-MM-DD (선택 입력, "최근 업데이트" 표시에 사용)
+   3) 데이터가 들어있는 시트 탭이 바뀌면, 아래 URL의 gid=0 숫자를
+      해당 시트 탭의 URL에 있는 gid 값으로 바꿔주세요.
+   ============================================================ */
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1ILsODsEmzFvnhBAXVQ5nbptajZlIn2eqQQsyPx5uRAQ/export?format=csv&gid=0";
+const AUTO_REFRESH_MS = 5 * 60 * 1000; // 5분마다 자동 동기화
+
+const GRADES = ["중3","중2","중1"];
+
+const SUBJECT_MAP = [
+  { key:'physics', match:['물리'], label:'물리', color:'var(--physics)',
+    icon:'<circle cx="12" cy="12" r="2" fill="currentColor"/><ellipse cx="12" cy="12" rx="9" ry="4" stroke="currentColor" stroke-width="1.6" fill="none"/><ellipse cx="12" cy="12" rx="9" ry="4" stroke="currentColor" stroke-width="1.6" fill="none" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="4" stroke="currentColor" stroke-width="1.6" fill="none" transform="rotate(120 12 12)"/>' },
+  { key:'chem', match:['화학'], label:'화학', color:'var(--chem)',
+    icon:'<path d="M10 3h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M10.5 3v6l-5 9a1.5 1.5 0 0 0 1.3 2.2h10.4a1.5 1.5 0 0 0 1.3-2.2l-5-9V3" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/><path d="M8 15h8" stroke="currentColor" stroke-width="1.8"/>' },
+  { key:'bio', match:['생명','생물'], label:'생명과학', color:'var(--bio)',
+    icon:'<path d="M6 20C6 10 18 14 18 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M8 17c3-1 8-1 9-9" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M7.5 12.5c2 1 6 1.5 7-3" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/>' },
+  { key:'earth', match:['지구'], label:'지구과학', color:'var(--earth)',
+    icon:'<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M3.5 12h17M12 3.5c3 3 3 14 0 17M12 3.5c-3 3-3 14 0 17" stroke="currentColor" stroke-width="1.3" fill="none"/>' },
+];
+const DEFAULT_SUBJECT = { key:'etc', label:'기타', color:'var(--ink-soft)',
+  icon:'<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M12 16v.01M12 8a2.5 2.5 0 0 1 2.5 2.5c0 1.5-2.5 1.8-2.5 3.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>' };
+
+function resolveSubject(text){
+  const t = (text || '').trim();
+  for(const s of SUBJECT_MAP){
+    if(s.match.some(m => t.includes(m))) return s;
+  }
+  return DEFAULT_SUBJECT;
+}
+
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function pick(row, keys){
+  for(const k of keys){
+    for(const rk in row){
+      if(rk.trim() === k) return (row[rk] || '').trim();
+    }
+  }
+  return '';
+}
+
+let rawRows = [];
+let state = { grade: GRADES[0], subtabId: null, subject: null };
+
+const gradeTabsEl = document.getElementById('gradeTabs');
+const subtabRowEl = document.getElementById('subtabRow');
+const contentEl = document.getElementById('content');
+const statCountEl = document.getElementById('statCount');
+const statDateEl = document.getElementById('statDate');
+const refreshBtn = document.getElementById('refreshBtn');
+
+async function fetchSheet(showSpinner){
+  if(showSpinner){
+    refreshBtn.classList.add('spinning');
+  }
+  try{
+    const res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
+    if(!res.ok) throw new Error('fetch failed');
+    const csvText = await res.text();
+    const parsed = Papa.parse(csvText, { header:true, skipEmptyLines:true });
+    rawRows = parsed.data.map(row => ({
+      grade: pick(row, ['학년']),
+      unit: pick(row, ['단원']),
+      subject: pick(row, ['과목']),
+      name: pick(row, ['이름','웹앱명','제목']),
+      url: pick(row, ['링크','URL','url']),
+      thumb: pick(row, ['썸네일','이미지','썸네일URL']),
+      date: pick(row, ['등록일','날짜']),
+    })).filter(r => r.name && r.url && GRADES.includes(r.grade));
+
+    if(!GRADES.includes(state.grade)) state.grade = GRADES[0];
+    const unitsForGrade = unitsOf(state.grade);
+    if(!unitsForGrade.includes(state.subtabId)) state.subtabId = unitsForGrade[0] || null;
+
+    updateStats();
+    render();
+    contentEl.querySelector && null;
+  }catch(err){
+    renderError();
+  }finally{
+    refreshBtn.classList.remove('spinning');
+  }
+}
+
+function unitsOf(grade){
+  const seen = [];
+  rawRows.forEach(r => { if(r.grade === grade && !seen.includes(r.unit) && r.unit) seen.push(r.unit); });
+  return seen;
+}
+
+function updateStats(){
+  statCountEl.textContent = rawRows.length;
+  const dates = rawRows.map(r => r.date).filter(Boolean).sort();
+  if(dates.length){
+    statDateEl.textContent = dates[dates.length - 1];
+  } else {
+    const now = new Date();
+    statDateEl.textContent = now.toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+  }
+}
+
+function renderError(){
+  renderGradeTabs();
+  subtabRowEl.innerHTML = "";
+  contentEl.innerHTML = `
+    <div class="error-state">
+      <div class="big">시트를 불러오지 못했어요</div>
+      <div class="small">
+        구글 스프레드시트가 <b>웹에 게시</b> 상태인지, 그리고 코드 안의<br>
+        <code>SHEET_CSV_URL</code> 값이 올바른지 확인해 주세요.
+      </div>
+      <button class="retry-btn" id="retryBtn">다시 시도</button>
+    </div>`;
+  document.getElementById('retryBtn').onclick = () => fetchSheet(true);
+}
+
+function renderGradeTabs(){
+  gradeTabsEl.innerHTML = "";
+  GRADES.forEach(g => {
+    const b = document.createElement('button');
+    b.className = 'grade-tab' + (g === state.grade ? ' active' : '');
+    b.textContent = g;
+    b.onclick = () => {
+      state.grade = g;
+      const units = unitsOf(g);
+      state.subtabId = units[0] || null;
+      render();
+    };
+    gradeTabsEl.appendChild(b);
+  });
+}
+
+function render(){
+  renderGradeTabs();
+
+  // subtab (unit) row + subject filter
+  subtabRowEl.innerHTML = "";
+  const units = unitsOf(state.grade);
+  units.forEach(u => {
+    const chip = document.createElement('button');
+    chip.className = 'subtab-chip' + (u === state.subtabId ? ' active' : '');
+    chip.textContent = u;
+    chip.onclick = () => { state.subtabId = u; render(); };
+    subtabRowEl.appendChild(chip);
+  });
+
+  const filterWrap = document.createElement('div');
+  filterWrap.className = 'subject-filter';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'subject-btn' + (state.subject === null ? ' active' : '');
+  allBtn.title = '전체 과목';
+  allBtn.innerHTML = `<span style="font-size:14px;">✱</span>`;
+  allBtn.onclick = () => { state.subject = null; render(); };
+  filterWrap.appendChild(allBtn);
+  SUBJECT_MAP.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'subject-btn' + (state.subject === s.key ? ' active' : '');
+    btn.style.setProperty('--sc', s.color);
+    btn.style.color = s.color;
+    btn.title = s.label;
+    btn.innerHTML = `<svg viewBox="0 0 24 24">${s.icon}</svg>`;
+    btn.onclick = () => { state.subject = (state.subject === s.key ? null : s.key); render(); };
+    filterWrap.appendChild(btn);
+  });
+  subtabRowEl.appendChild(filterWrap);
+
+  // content
+  contentEl.innerHTML = "";
+  if(!state.subtabId){
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.innerHTML = `<div class="big">아직 등록된 단원이 없어요</div><div class="small">구글 시트에 ${state.grade} 웹앱을 추가하면 여기에 자동으로 나타나요.</div>`;
+    contentEl.appendChild(empty);
+    return;
+  }
+
+  let apps = rawRows.filter(r => r.grade === state.grade && r.unit === state.subtabId);
+  if(state.subject) apps = apps.filter(r => resolveSubject(r.subject).key === state.subject);
+
+  if(!apps.length){
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.innerHTML = `<div class="big">조건에 맞는 웹앱이 없어요</div><div class="small">다른 과목 필터를 선택해 보세요.</div>`;
+    contentEl.appendChild(empty);
+    return;
+  }
+
+  const grid = document.createElement('div');
+  grid.className = 'app-grid';
+
+  apps.forEach(app => {
+    const subj = resolveSubject(app.subject);
+    const card = document.createElement('div');
+    card.className = 'app-card';
+
+    const pin = document.createElement('div');
+    pin.className = 'pin';
+    card.appendChild(pin);
+
+    const thumbWrap = document.createElement('div');
+    thumbWrap.className = 'thumb-wrap';
+    if(app.thumb){
+      const img = document.createElement('img');
+      img.className = 'app-thumb';
+      img.src = app.thumb;
+      img.alt = app.name;
+      img.onerror = () => { img.replaceWith(placeholderEl()); };
+      thumbWrap.appendChild(img);
+    } else {
+      thumbWrap.appendChild(placeholderEl());
+    }
+    const badge = document.createElement('div');
+    badge.className = 'subject-badge';
+    badge.style.background = subj.color;
+    badge.title = subj.label;
+    badge.innerHTML = `<svg viewBox="0 0 24 24" style="color:#fff;">${subj.icon}</svg>`;
+    thumbWrap.appendChild(badge);
+    card.appendChild(thumbWrap);
+
+    const info = document.createElement('div');
+    info.className = 'app-info';
+    const name = document.createElement('div');
+    name.className = 'app-name';
+    name.textContent = app.name;
+    const meta = document.createElement('div');
+    meta.className = 'app-meta mono';
+    meta.textContent = subj.label + ' · ' + state.subtabId;
+    info.appendChild(name);
+    info.appendChild(meta);
+    card.appendChild(info);
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const goBtn = document.createElement('a');
+    goBtn.className = 'go';
+    goBtn.href = app.url;
+    goBtn.target = '_blank';
+    goBtn.rel = 'noopener noreferrer';
+    goBtn.textContent = '바로가기 ↗';
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy';
+    copyBtn.textContent = '링크 복사';
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(app.url).then(() => {
+        copyBtn.textContent = '복사됨!';
+        copyBtn.classList.add('copied');
+        setTimeout(() => { copyBtn.textContent = '링크 복사'; copyBtn.classList.remove('copied'); }, 1500);
+      });
+    };
+    actions.appendChild(goBtn);
+    actions.appendChild(copyBtn);
+    card.appendChild(actions);
+
+    grid.appendChild(card);
+  });
+
+  contentEl.appendChild(grid);
+}
+
+function placeholderEl(){
+  const ph = document.createElement('div');
+  ph.className = 'app-thumb placeholder';
+  ph.textContent = '🧪';
+  return ph;
+}
+
+refreshBtn.onclick = () => fetchSheet(true);
+renderGradeTabs();
+fetchSheet(true);
+setInterval(() => fetchSheet(false), AUTO_REFRESH_MS);
+</script>
+</body>
+</html>
