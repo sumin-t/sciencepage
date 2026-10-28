@@ -420,7 +420,7 @@ async function fetchSheet(showSpinner){
       name: pick(row, ['이름','웹앱명','제목']),
       url: pick(row, ['링크','URL','url']),
       thumb: pick(row, ['썸네일','이미지','썸네일URL']), // 참고용(현재 UI에서는 미사용, 과목 아이콘으로 대체)
-      date: pick(row, ['등록일','날짜']),
+      date: pickLoose(row, ['등록일','날짜']),
     })).filter(r => r.name && r.url && GRADES.includes(r.grade));
 
     if(!GRADES.includes(state.grade)) state.grade = GRADES[0];
@@ -443,11 +443,43 @@ function unitsOf(grade){
   return seen;
 }
 
+// 헤더가 '등록일(선택)' 처럼 뒤에 글자가 붙어 있어도 인식
+function pickLoose(row, keys){
+  const exact = pick(row, keys);
+  if(exact) return exact;
+  for(const k of keys){
+    for(const rk in row){
+      if(rk.trim().startsWith(k)) return (row[rk] || '').trim();
+    }
+  }
+  return '';
+}
+
+// 다양한 날짜 형식(2026-10-28, 2026. 10. 28, 2026/10/28, 10/28/2026, 2026년 10월 28일, 26.10.28)을 Date로 변환
+function parseDate(str){
+  const s = (str || '').trim();
+  if(!s) return null;
+  let m = s.match(/(\d{4})\s*[-./년]\s*(\d{1,2})\s*[-./월]\s*(\d{1,2})/);
+  if(m) return new Date(+m[1], +m[2]-1, +m[3]);
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); // 미국식 M/D/YYYY
+  if(m) return new Date(+m[3], +m[1]-1, +m[2]);
+  m = s.match(/^(\d{2})\s*[-./]\s*(\d{1,2})\s*[-./]\s*(\d{1,2})$/); // YY.MM.DD
+  if(m) return new Date(2000 + +m[1], +m[2]-1, +m[3]);
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+
+function formatDate(d){
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+}
+
 function updateStats(){
   statCountEl.textContent = rawRows.length;
-  const dates = rawRows.map(r => r.date).filter(Boolean).sort();
+  const dates = rawRows.map(r => parseDate(r.date)).filter(Boolean);
   if(dates.length){
-    statDateEl.textContent = dates[dates.length - 1];
+    const latest = new Date(Math.max(...dates.map(d => d.getTime())));
+    statDateEl.textContent = formatDate(latest);
   } else {
     const now = new Date();
     statDateEl.textContent = now.toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
